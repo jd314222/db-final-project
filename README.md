@@ -79,4 +79,3 @@ The database includes multiple analytical views such as:
 
 ### Links to some relevant datasets
 - https://github.com/PrismarineJS/minecraft-data/tree/master
-- 
