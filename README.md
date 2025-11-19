@@ -1,5 +1,11 @@
 # Minecraft Mob Probability Calculator  
 *A CS3620 Databases Final Project*
+Potential Project Name: Blockheads
+
+Team Members:
+Ethan Eisnaugle
+Patrick McConnell
+Jayden Dowell
 
 ## Project Goals  
 - Allow users to create and save custom “mob spawn scenarios,” specifying conditions such as biome, difficulty, armor, held items, and modifiers.  
