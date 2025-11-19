@@ -2,14 +2,14 @@
 *A CS3620 Databases Final Project Proposal*
 
 # Potential Project Name: 
-*Blockheads*
+Blockheads
 
-#Team Members:
-*
+# Team Members:
+
 Ethan Eisnaugle,
 Patrick McConnell,
 Jayden Dowell
-*
+
 
 ## Project Goals  
 - Allow users to create and save custom “mob spawn scenarios,” specifying conditions such as biome, difficulty, armor, held items, and modifiers.  
