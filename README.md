@@ -1,10 +1,13 @@
 # Minecraft Mob Probability Calculator  
 *A CS3620 Databases Final Project Proposal*
-Potential Project Name: Blockheads*
+
+# Potential Project Name: 
+*Blockheads*
+
+#Team Members:
 *
-Team Members:
-Ethan Eisnaugle
-Patrick McConnell
+Ethan Eisnaugle,
+Patrick McConnell,
 Jayden Dowell
 *
 
