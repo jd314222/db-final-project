@@ -1,4 +1,4 @@
-# Minecraft Mob Probability Calculator - Setup Guide
+# Steam Reviewer - Setup Guide
 
 **Team:** Ethan Eisnaugle, Patrick McConnell, Jayden Dowell  
 **Course:** CS3620 Databases Final Project
@@ -13,7 +13,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Navigate to project
-cd blockheads
+cd steamreviewer
 
 # Run migrations
 python manage.py migrate
@@ -31,8 +31,8 @@ Visit: http://localhost:8000/admin/
 
 ```
 db-final-project/
-├── blockheads/              # Django project
-│   ├── blockheads/         # Settings & config
+├── steamreviewer/              # Django project
+│   ├── steamreviewer/         # Settings & config
 │   ├── core/               # Main app (add models here)
 │   └── manage.py
 ├── venv/                   # Virtual environment
@@ -42,7 +42,7 @@ db-final-project/
 ## Development Workflow
 
 ### 1. Create Models
-Edit `blockheads/core/models.py`:
+Edit `steamreviewer/core/models.py`:
 ```python
 from django.db import models
 
@@ -61,7 +61,7 @@ python manage.py migrate
 ```
 
 ### 3. Register in Admin
-Edit `blockheads/core/admin.py`:
+Edit `steamreviewer/core/admin.py`:
 ```python
 from django.contrib import admin
 from .models import Mob
@@ -70,7 +70,7 @@ admin.site.register(Mob)
 ```
 
 ### 4. Create API (Optional)
-Create `blockheads/core/serializers.py`:
+Create `steamreviewer/core/serializers.py`:
 ```python
 from rest_framework import serializers
 from .models import Mob
@@ -81,7 +81,7 @@ class MobSerializer(serializers.ModelSerializer):
         fields = '__all__'
 ```
 
-Update `blockheads/core/views.py`:
+Update `steamreviewer/core/views.py`:
 ```python
 from rest_framework import viewsets
 from .models import Mob
@@ -92,7 +92,7 @@ class MobViewSet(viewsets.ModelViewSet):
     serializer_class = MobSerializer
 ```
 
-Update `blockheads/core/urls.py`:
+Update `steamreviewer/core/urls.py`:
 ```python
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
@@ -124,15 +124,15 @@ python manage.py test             # Run tests
 pip install psycopg2-binary
 
 # Create database
-createdb minecraft_mob_calc
+createdb steam_reviewer_db
 ```
 
-Update `blockheads/blockheads/settings.py`:
+Update `steamreviewer/steamreviewer/settings.py`:
 ```python
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'minecraft_mob_calc',
+        'NAME': 'steam_reviewer_db',
         'USER': 'postgres',
         'PASSWORD': 'your_password',
         'HOST': 'localhost',
