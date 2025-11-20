@@ -1,0 +1,11 @@
+# Django and Django REST Framework
+Django==4.2.7
+djangorestframework==3.14.0
+django-cors-headers==4.3.0
+django-filter==23.5
+
+# Database (uncomment psycopg2-binary when you have PostgreSQL installed)
+# psycopg2-binary==2.9.9
+
+# Environment variables
+python-dotenv==1.0.0
