@@ -1,0 +1,11 @@
+Team Name: Blockheads
+
+Team Members: Ethan Eisnaugle, Patrick McConnell, Jayden Dowell
+
+We are going to build an application that utilizes real minecraft game data & assets to calculate the probability of a user specified mob spawning in minecraft. The user will accomplish this by clicking through a graphical user interface, selecting the mob they want, as well as other information such as, armor worn, item held, current biome, etc. With these parameters, the app will return the probability as well as other relevant statistics such as mob health and a leaderboard of other computed probabilities.
+
+Github Link: https://github.com/jd314222/db-final-project
+
+STILL NEEDED:
+Recording of running code delivering some output.
+Diagram containing at least 10 tables.
