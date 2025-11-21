@@ -18,7 +18,13 @@ cd steamreviewer
 # Run migrations
 python manage.py migrate
 
-# Create admin user
+# Download datasets from Kaggle (first time only)
+python download_dataset.py
+
+# Import data from CSVs
+python manage.py import_data
+
+# Create admin user (if needed)
 python manage.py createsuperuser
 
 # Start server
@@ -31,127 +37,54 @@ Visit: http://localhost:8000/admin/
 
 ```
 db-final-project/
+├── data/                       # CSV datasets
+│   ├── pc_videogame_requirements.csv
+│   └── steam_game_reviews.csv
 ├── steamreviewer/              # Django project
 │   ├── steamreviewer/         # Settings & config
-│   ├── core/               # Main app (add models here)
+│   ├── core/               # Models, admin, views
 │   └── manage.py
 ├── venv/                   # Virtual environment
 └── requirements.txt
 ```
 
-## Development Workflow
+## Database Models
 
-### 1. Create Models
-Edit `steamreviewer/core/models.py`:
-```python
-from django.db import models
-
-class Mob(models.Model):
-    name = models.CharField(max_length=100)
-    health = models.FloatField()
-    
-    def __str__(self):
-        return self.name
-```
-
-### 2. Apply Changes
-```bash
-python manage.py makemigrations
-python manage.py migrate
-```
-
-### 3. Register in Admin
-Edit `steamreviewer/core/admin.py`:
-```python
-from django.contrib import admin
-from .models import Mob
-
-admin.site.register(Mob)
-```
-
-### 4. Create API (Optional)
-Create `steamreviewer/core/serializers.py`:
-```python
-from rest_framework import serializers
-from .models import Mob
-
-class MobSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Mob
-        fields = '__all__'
-```
-
-Update `steamreviewer/core/views.py`:
-```python
-from rest_framework import viewsets
-from .models import Mob
-from .serializers import MobSerializer
-
-class MobViewSet(viewsets.ModelViewSet):
-    queryset = Mob.objects.all()
-    serializer_class = MobSerializer
-```
-
-Update `steamreviewer/core/urls.py`:
-```python
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import MobViewSet
-
-router = DefaultRouter()
-router.register(r'mobs', MobViewSet)
-
-urlpatterns = [
-    path('', include(router.urls)),
-]
-```
+- **Games** - Game details with prices and system requirements
+- **Reviews** - User reviews with ratings and playtime
+- **Genres** - Game categories
+- **Developers** - Game developers
+- **Users** - User profiles with budgets and specs
 
 ## Useful Commands
 
 ```bash
-python manage.py runserver        # Start dev server
-python manage.py makemigrations   # Create migrations
-python manage.py migrate          # Apply migrations
-python manage.py createsuperuser  # Create admin user
-python manage.py shell            # Django shell
-python manage.py test             # Run tests
+python download_dataset.py         # Download datasets from Kaggle
+python manage.py runserver         # Start server (localhost:8000)
+python manage.py import_data       # Import CSV data
+python manage.py shell             # Django shell for queries
+python manage.py migrate           # Apply database changes
 ```
 
-## Switching to PostgreSQL
+## Querying Data
 
-```bash
-# Install driver
-pip install psycopg2-binary
-
-# Create database
-createdb steam_reviewer_db
-```
-
-Update `steamreviewer/steamreviewer/settings.py`:
 ```python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'steam_reviewer_db',
-        'USER': 'postgres',
-        'PASSWORD': 'your_password',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
-}
+# In Django shell (python manage.py shell)
+from core.models import Games, Reviews
+
+# Get all games
+Games.objects.all()
+
+# Search by name
+Games.objects.filter(game_name__icontains="Counter")
+
+# Get reviews for a game
+Reviews.objects.filter(game__game_name="Cyberpunk 2077")
+
+# Complex queries
+from django.db.models import Avg, Count
+Games.objects.annotate(
+    avg_rating=Avg('reviews__votes_up'),
+    review_count=Count('reviews')
+).order_by('-review_count')[:10]
 ```
-
-Then run `python manage.py migrate` again.
-
-## What's Included
-
-- Django 4.2.7 + REST Framework
-- CORS headers configured
-- SQLite database (easy to switch)
-- Admin panel ready
-- API routing set up
-
-## Endpoints
-
-- Admin: http://localhost:8000/admin/
-- API: http://localhost:8000/api/
