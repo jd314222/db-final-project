@@ -230,12 +230,13 @@ class Command(BaseCommand):
                     if not game_name:
                         continue
                     
-                    # Parse price from reviews CSV
+                    # Parse price from reviews CSV (stored as cents, convert to dollars)
                     price = None
                     price_str = row.get('price', '').strip()
                     if price_str:
                         try:
-                            price = float(price_str)
+                            # Prices are stored as cents (6999 = $69.99), divide by 100
+                            price = float(price_str) / 100
                         except:
                             pass
                     
