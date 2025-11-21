@@ -56,3 +56,6 @@ htmlcov/
 *.sql
 *.sqlite
 *.db
+
+#Dataset
+data/
