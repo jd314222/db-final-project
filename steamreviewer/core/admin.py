@@ -1,7 +1,9 @@
 from django.contrib import admin
 from .models import (
     Genres, Developers, Games, GameSystemRequirements, Users,
-    UserSpecs, UserWishList, UserFavoritedGenres, CreatedGames, Reviews
+    UserSpecs, UserWishList, UserFavoritedGenres, CreatedGames, Reviews,
+    UserLibrary, Tags, GameTags, GameUrls, Languages, GameImages,
+    Platform, GamePlatform, Publishers, GamePublishers
 )
 
 
@@ -62,4 +64,69 @@ class CreatedGamesAdmin(admin.ModelAdmin):
 class ReviewsAdmin(admin.ModelAdmin):
     list_display = ['review_id', 'game', 'voted_up', 'votes_up', 'created_at']
     list_filter = ['voted_up', 'created_at']
+
+
+@admin.register(UserLibrary)
+class UserLibraryAdmin(admin.ModelAdmin):
+    list_display = ['user', 'game', 'purchase_date', 'price_paid']
+    list_filter = ['purchase_date']
+    search_fields = ['user__user_id', 'game__game_name']
+
+
+@admin.register(Tags)
+class TagsAdmin(admin.ModelAdmin):
+    list_display = ['tag_id', 'tag_string']
+    search_fields = ['tag_string']
+
+
+@admin.register(GameTags)
+class GameTagsAdmin(admin.ModelAdmin):
+    list_display = ['game', 'tag']
+    list_filter = ['tag']
+    search_fields = ['game__game_name', 'tag__tag_string']
+
+
+@admin.register(GameUrls)
+class GameUrlsAdmin(admin.ModelAdmin):
+    list_display = ['game', 'url']
+    search_fields = ['game__game_name']
+
+
+@admin.register(Languages)
+class LanguagesAdmin(admin.ModelAdmin):
+    list_display = ['game', 'language_supported']
+    list_filter = ['language_supported']
+    search_fields = ['game__game_name']
+
+
+@admin.register(GameImages)
+class GameImagesAdmin(admin.ModelAdmin):
+    list_display = ['game', 'image_url']
+    search_fields = ['game__game_name']
+
+
+@admin.register(Platform)
+class PlatformAdmin(admin.ModelAdmin):
+    list_display = ['plat_id', 'platform_name']
+    search_fields = ['platform_name']
+
+
+@admin.register(GamePlatform)
+class GamePlatformAdmin(admin.ModelAdmin):
+    list_display = ['game', 'platform']
+    list_filter = ['platform']
+    search_fields = ['game__game_name']
+
+
+@admin.register(Publishers)
+class PublishersAdmin(admin.ModelAdmin):
+    list_display = ['pub_id', 'publisher']
+    search_fields = ['publisher']
+
+
+@admin.register(GamePublishers)
+class GamePublishersAdmin(admin.ModelAdmin):
+    list_display = ['game', 'publisher', 'publish_date']
+    list_filter = ['publisher', 'publish_date']
+    search_fields = ['game__game_name', 'publisher__publisher']
     search_fields = ['review_text', 'game__game_name']
