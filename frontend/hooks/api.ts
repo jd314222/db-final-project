@@ -25,7 +25,9 @@ class APIClient {
         throw new Error(`API Error: ${response.status} ${response.statusText}`);
       }
 
-      return response.json();
+      // Handle empty responses (e.g., 204 No Content for DELETE)
+      const text = await response.text();
+      return text ? JSON.parse(text) : {} as T;
     } catch (error) {
       console.error('API Request failed:', error);
       throw error;

@@ -26,6 +26,7 @@ export interface GameDetail extends Game {
 export interface Review {
   review_id: number;
   game_id: number;
+  game_name: string;
   user_id: number;
   review_text: string;
   sentiment: string;
@@ -49,8 +50,8 @@ export interface PaginatedResponse<T> {
 export interface GameFilters {
   search?: string;
   genre?: string;
-  price_min?: string;
-  price_max?: string;
+  price_min?: string | number;
+  price_max?: string | number;
   budget?: string;
   release_year?: number;
   ordering?: string;
@@ -59,6 +60,7 @@ export interface GameFilters {
 
 export interface ReviewFilters {
   game_id?: string;
+  search?: string;
   sentiment?: string;
   ordering?: string;
   page?: number;

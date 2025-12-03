@@ -161,9 +161,9 @@ export default function UserProfilePage() {
               {wishlist.map((item) => (
                 <div 
                   key={item.game.game_id}
-                  className="bg-gray-800 rounded-lg overflow-hidden"
+                  className="bg-gray-800 rounded-lg overflow-hidden flex flex-col"
                 >
-                  <div className="p-6">
+                  <div className="p-6 flex-1 flex flex-col">
                     <Link 
                       href={`/games/${item.game.game_id}`}
                       className="hover:text-blue-400 transition-colors"
@@ -184,7 +184,7 @@ export default function UserProfilePage() {
                       )}
                     </div>
 
-                    <div className="text-sm text-gray-400 space-y-1 mb-4">
+                    <div className="text-sm text-gray-400 space-y-1 mb-4 flex-1">
                       {item.game.genre_name && (
                         <div>🎯 {item.game.genre_name}</div>
                       )}
@@ -197,7 +197,7 @@ export default function UserProfilePage() {
                     <button
                       onClick={() => handleRemoveFromWishlist(item.game.game_id)}
                       disabled={removing === item.game.game_id}
-                      className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-auto"
                     >
                       {removing === item.game.game_id ? 'Removing...' : 'Remove from Wishlist'}
                     </button>
