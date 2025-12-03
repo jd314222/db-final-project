@@ -146,3 +146,132 @@ class Reviews(models.Model):
     
     def __str__(self):
         return f"Review {self.review_id} for {self.game.game_name}"
+
+
+class UserLibrary(models.Model):
+    user = models.ForeignKey(Users, on_delete=models.CASCADE, db_column='UserID')
+    game = models.ForeignKey(Games, on_delete=models.CASCADE, db_column='GameID')
+    purchase_date = models.DateField(db_column='PurchaseDate')
+    price_paid = models.DecimalField(max_digits=10, decimal_places=2, db_column='PricePaid')
+    
+    class Meta:
+        db_table = 'userLibrary'
+        verbose_name_plural = 'User Libraries'
+        unique_together = ('user', 'game')
+    
+    def __str__(self):
+        return f"User {self.user.user_id} owns {self.game.game_name}"
+
+
+class Tags(models.Model):
+    tag_id = models.AutoField(primary_key=True, db_column='TagID')
+    tag_string = models.CharField(max_length=255, db_column='TagString')
+    
+    class Meta:
+        db_table = 'Tags'
+        verbose_name_plural = 'Tags'
+    
+    def __str__(self):
+        return self.tag_string
+
+
+class GameTags(models.Model):
+    game = models.ForeignKey(Games, on_delete=models.CASCADE, db_column='GameID')
+    tag = models.ForeignKey(Tags, on_delete=models.CASCADE, db_column='TagID')
+    
+    class Meta:
+        db_table = 'gameTags'
+        verbose_name_plural = 'Game Tags'
+        unique_together = ('game', 'tag')
+    
+    def __str__(self):
+        return f"{self.game.game_name} - {self.tag.tag_string}"
+
+
+class GameUrls(models.Model):
+    game = models.OneToOneField(Games, on_delete=models.CASCADE, primary_key=True, db_column='GameID')
+    url = models.CharField(max_length=500, db_column='URL')
+    
+    class Meta:
+        db_table = 'gameUrls'
+        verbose_name_plural = 'Game URLs'
+    
+    def __str__(self):
+        return f"URL for {self.game.game_name}"
+
+
+class Languages(models.Model):
+    game = models.ForeignKey(Games, on_delete=models.CASCADE, db_column='GameID')
+    language_supported = models.CharField(max_length=255, db_column='LanguageSupported')
+    
+    class Meta:
+        db_table = 'Languages'
+        verbose_name_plural = 'Languages'
+        unique_together = ('game', 'language_supported')
+    
+    def __str__(self):
+        return f"{self.game.game_name} - {self.language_supported}"
+
+
+class GameImages(models.Model):
+    game = models.ForeignKey(Games, on_delete=models.CASCADE, db_column='GameID')
+    image_url = models.CharField(max_length=500, db_column='ImageURL')
+    
+    class Meta:
+        db_table = 'gameImages'
+        verbose_name_plural = 'Game Images'
+        unique_together = ('game', 'image_url')
+    
+    def __str__(self):
+        return f"Image for {self.game.game_name}"
+
+
+class Platform(models.Model):
+    plat_id = models.AutoField(primary_key=True, db_column='PlatID')
+    platform_name = models.CharField(max_length=255, db_column='PlatformName')
+    
+    class Meta:
+        db_table = 'Platform'
+        verbose_name_plural = 'Platforms'
+    
+    def __str__(self):
+        return self.platform_name
+
+
+class GamePlatform(models.Model):
+    game = models.ForeignKey(Games, on_delete=models.CASCADE, db_column='GameID')
+    platform = models.ForeignKey(Platform, on_delete=models.CASCADE, db_column='PlatID')
+    
+    class Meta:
+        db_table = 'gamePlatform'
+        verbose_name_plural = 'Game Platforms'
+        unique_together = ('game', 'platform')
+    
+    def __str__(self):
+        return f"{self.game.game_name} on {self.platform.platform_name}"
+
+
+class Publishers(models.Model):
+    pub_id = models.AutoField(primary_key=True, db_column='PubID')
+    publisher = models.CharField(max_length=255, db_column='Publisher')
+    
+    class Meta:
+        db_table = 'Publishers'
+        verbose_name_plural = 'Publishers'
+    
+    def __str__(self):
+        return self.publisher
+
+
+class GamePublishers(models.Model):
+    game = models.ForeignKey(Games, on_delete=models.CASCADE, db_column='GameID')
+    publisher = models.ForeignKey(Publishers, on_delete=models.CASCADE, db_column='PubID')
+    publish_date = models.DateField(db_column='PublishDate')
+    
+    class Meta:
+        db_table = 'gamePublishers'
+        verbose_name_plural = 'Game Publishers'
+        unique_together = ('game', 'publisher')
+    
+    def __str__(self):
+        return f"{self.game.game_name} published by {self.publisher.publisher}"
