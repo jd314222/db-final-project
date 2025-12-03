@@ -15,7 +15,7 @@ datasets = [
     {
         "name": "akashunikaggle/steam-game-reviews-of-743-games",
         "file_mapping": {
-            "steam_game_reviews.csv": "steam_game_reviews.csv"
+            "*.csv": "steam_game_reviews.csv"  # Will rename any CSV file
         }
     },
     {
