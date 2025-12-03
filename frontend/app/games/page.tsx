@@ -17,6 +17,7 @@ export default function GamesPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [addingToWishlist, setAddingToWishlist] = useState<number | null>(null);
+  const [wishlistedGames, setWishlistedGames] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const fetchGenres = async () => {
@@ -29,6 +30,21 @@ export default function GamesPage() {
     };
     fetchGenres();
   }, []);
+
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      if (isAuthenticated && userId) {
+        try {
+          const data = await apiClient.getWishlist(userId);
+          const gameIds = new Set(data.results.map((item: any) => item.game.game_id));
+          setWishlistedGames(gameIds);
+        } catch (error) {
+          console.error('Failed to fetch wishlist:', error);
+        }
+      }
+    };
+    fetchWishlist();
+  }, [isAuthenticated, userId]);
 
   useEffect(() => {
     const fetchGames = async () => {
@@ -62,13 +78,10 @@ export default function GamesPage() {
     setAddingToWishlist(gameId);
     try {
       await apiClient.addToWishlist(userId, gameId);
-      alert('Added to wishlist!');
+      setWishlistedGames(prev => new Set(prev).add(gameId));
     } catch (error: any) {
-      if (error.message.includes('400')) {
-        alert('Already in wishlist');
-      } else {
-        alert('Failed to add to wishlist');
-      }
+      // Silently handle errors - already in wishlist or failed
+      console.error('Wishlist error:', error);
     } finally {
       setAddingToWishlist(null);
     }
@@ -82,7 +95,7 @@ export default function GamesPage() {
           
           {/* Filters */}
           <div className="bg-gray-800 p-6 rounded-lg space-y-4">
-            <div className="grid md:grid-cols-4 gap-4">
+            <div className="grid md:grid-cols-3 gap-4">
               {/* Search */}
               <div>
                 <label className="block text-sm font-medium mb-2">Search</label>
@@ -94,22 +107,6 @@ export default function GamesPage() {
                 />
               </div>
 
-              {/* Genre */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Genre</label>
-                <select
-                  className="w-full px-3 py-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
-                  onChange={(e) => handleFilterChange({ genre: e.target.value || undefined })}
-                >
-                  <option value="">All Genres</option>
-                  {genres.map((genre) => (
-                    <option key={genre.genre_id} value={genre.genre_name}>
-                      {genre.genre_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {/* Min Price */}
               <div>
                 <label className="block text-sm font-medium mb-2">Min Price ($)</label>
@@ -119,7 +116,7 @@ export default function GamesPage() {
                   min="0"
                   step="0.01"
                   className="w-full px-3 py-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
-                  onChange={(e) => handleFilterChange({ price_min: e.target.value || undefined })}
+                  onChange={(e) => handleFilterChange({ price_min: e.target.value ? parseFloat(e.target.value) : undefined })}
                 />
               </div>
 
@@ -132,7 +129,7 @@ export default function GamesPage() {
                   min="0"
                   step="0.01"
                   className="w-full px-3 py-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
-                  onChange={(e) => handleFilterChange({ price_max: e.target.value || undefined })}
+                  onChange={(e) => handleFilterChange({ price_max: e.target.value ? parseFloat(e.target.value) : undefined })}
                 />
               </div>
             </div>
@@ -190,10 +187,14 @@ export default function GamesPage() {
                 <div className="px-6 pb-6">
                   <button
                     onClick={(e) => handleAddToWishlist(game.game_id, e)}
-                    disabled={addingToWishlist === game.game_id}
+                    disabled={addingToWishlist === game.game_id || wishlistedGames.has(game.game_id)}
                     className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold"
                   >
-                    {addingToWishlist === game.game_id ? '⏳ Adding...' : '💖 Add to Wishlist'}
+                    {addingToWishlist === game.game_id 
+                      ? '⏳ Adding...' 
+                      : wishlistedGames.has(game.game_id)
+                      ? '✓ In Wishlist'
+                      : '💖 Add to Wishlist'}
                   </button>
                 </div>
               </div>
