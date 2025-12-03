@@ -48,6 +48,9 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.WARNING(f'PC requirements file not found: {pc_requirements_file}'))
         
+        # Step 5: Normalize database - remove games with null prices
+        self.normalize_database()
+        
         self.stdout.write(self.style.SUCCESS('\n✅ Data import completed!'))
 
     def import_pc_requirements(self, filepath):
@@ -427,3 +430,28 @@ class Command(BaseCommand):
                     updated += 1
         
         self.stdout.write(self.style.SUCCESS(f'✓ Updated prices for {updated} games'))
+
+    def normalize_database(self):
+        """Remove games with null prices to keep database normalized"""
+        self.stdout.write(f'\nNormalizing database...')
+        
+        # Count games with null prices
+        null_price_games = Games.objects.filter(game_price__isnull=True)
+        count = null_price_games.count()
+        
+        if count == 0:
+            self.stdout.write(self.style.SUCCESS('✓ Database already normalized - no null prices found'))
+            return
+        
+        # Delete games with null prices
+        null_price_games.delete()
+        
+        # Verify cleanup
+        remaining = Games.objects.count()
+        free_games = Games.objects.filter(game_price=0).count()
+        paid_games = Games.objects.filter(game_price__gt=0).count()
+        
+        self.stdout.write(self.style.SUCCESS(f'✓ Deleted {count} games with null prices'))
+        self.stdout.write(f'  Total games: {remaining}')
+        self.stdout.write(f'  Free games ($0.00): {free_games}')
+        self.stdout.write(f'  Paid games (>$0.00): {paid_games}')
