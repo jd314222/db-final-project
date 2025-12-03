@@ -5,8 +5,13 @@ Usage: python manage.py import_data
 from django.core.management.base import BaseCommand
 import csv
 import os
+import sys
 from core.models import Games, GameSystemRequirements, Genres, Reviews
 from datetime import datetime
+from decimal import Decimal
+
+# Increase CSV field size limit for large fields in games.csv
+csv.field_size_limit(sys.maxsize)
 
 
 class Command(BaseCommand):
@@ -17,20 +22,31 @@ class Command(BaseCommand):
         
         self.stdout.write('Starting data import...\n')
         
-        # Import game system requirements from PC videogame requirements CSV
-        pc_requirements_file = os.path.join(data_dir, 'pc_videogame_requirements.csv')
-        if os.path.exists(pc_requirements_file):
-            self.import_pc_requirements(pc_requirements_file)
-        else:
-            self.stdout.write(self.style.WARNING(f'PC requirements file not found: {pc_requirements_file}'))
-        
-        # Import reviews from the reviews CSV (includes game prices)
+        # Step 1: Import reviews (this creates games with prices from reviews CSV)
         reviews_file = os.path.join(data_dir, 'steam_game_reviews.csv')
         if os.path.exists(reviews_file):
             self.import_reviews(reviews_file)
         else:
             self.stdout.write(self.style.WARNING(f'Reviews file not found: {reviews_file}'))
-            self.stdout.write('Skipping review import. Please ensure your reviews CSV is named steam_game_reviews.csv')
+        
+        # Step 2: Import all games from Kaggle dataset (includes F2P games and full catalog)
+        kaggle_games_file = os.path.join(data_dir, 'games.csv')
+        if os.path.exists(kaggle_games_file):
+            self.import_kaggle_games(kaggle_games_file)
+        else:
+            self.stdout.write(self.style.WARNING(f'Kaggle games.csv not found: {kaggle_games_file}'))
+            self.stdout.write(self.style.WARNING('Run download_dataset.py to get the Kaggle dataset'))
+        
+        # Step 3: Update prices from Kaggle dataset (more accurate than reviews CSV)
+        if os.path.exists(kaggle_games_file):
+            self.update_prices_from_kaggle(kaggle_games_file)
+        
+        # Step 4: Import system requirements from PC videogame requirements CSV
+        pc_requirements_file = os.path.join(data_dir, 'pc_videogame_requirements.csv')
+        if os.path.exists(pc_requirements_file):
+            self.import_pc_requirements(pc_requirements_file)
+        else:
+            self.stdout.write(self.style.WARNING(f'PC requirements file not found: {pc_requirements_file}'))
         
         self.stdout.write(self.style.SUCCESS('\n✅ Data import completed!'))
 
@@ -296,3 +312,118 @@ class Command(BaseCommand):
                 imported += len(batch)
         
         self.stdout.write(self.style.SUCCESS(f'✓ Imported {imported} reviews, {errors} errors'))
+
+    def import_kaggle_games(self, filepath):
+        """Import all games from Kaggle games.csv dataset"""
+        self.stdout.write(f'\nImporting games from Kaggle dataset: {filepath}...')
+        
+        # Get or create default genre
+        default_genre = Genres.objects.get_or_create(genre_name='Unknown')[0]
+        
+        # Get existing game names (lowercase for case-insensitive matching)
+        existing_games = {game.game_name.lower() for game in Games.objects.all()}
+        self.stdout.write(f'Found {len(existing_games)} existing games in database')
+        
+        imported = 0
+        skipped = 0
+        errors = 0
+        
+        with open(filepath, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            
+            for row in reader:
+                try:
+                    name = row.get('Name', '').strip()
+                    if not name:
+                        continue
+                    
+                    # Check if game already exists (case-insensitive)
+                    if name.lower() in existing_games:
+                        skipped += 1
+                        continue
+                    
+                    # Parse price
+                    price = None
+                    price_str = row.get('Price', '').strip()
+                    if price_str:
+                        try:
+                            price = Decimal(price_str)
+                        except:
+                            pass
+                    
+                    # Parse release date to get year
+                    release_year = None
+                    release_date = row.get('Release date', '').strip()
+                    if release_date:
+                        try:
+                            # Try common date formats
+                            for fmt in ['%b %d, %Y', '%b %Y', '%Y']:
+                                try:
+                                    dt = datetime.strptime(release_date, fmt)
+                                    release_year = dt.year
+                                    break
+                                except:
+                                    continue
+                        except:
+                            pass
+                    
+                    # Create the game
+                    Games.objects.create(
+                        game_name=name,
+                        genre=default_genre,
+                        game_price=price,
+                        release_year=release_year,
+                        storage_gb=None  # Not available in this dataset
+                    )
+                    existing_games.add(name.lower())
+                    imported += 1
+                    
+                    if imported % 1000 == 0:
+                        self.stdout.write(f'  Imported {imported} games...')
+                        
+                except Exception as e:
+                    errors += 1
+                    if errors < 10:
+                        self.stdout.write(self.style.WARNING(f'  Error importing {row.get("Name", "unknown")}: {str(e)}'))
+                    continue
+        
+        self.stdout.write(self.style.SUCCESS(f'✓ Imported {imported} new games, skipped {skipped} duplicates, {errors} errors'))
+
+    def update_prices_from_kaggle(self, filepath):
+        """Update game prices from Kaggle dataset (more accurate than reviews CSV)"""
+        self.stdout.write(f'\nUpdating prices from Kaggle dataset...')
+        
+        # Load prices from Kaggle
+        kaggle_prices = {}  # {game_name_lower: price}
+        
+        with open(filepath, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                name = row.get('Name', '').strip()
+                price_str = row.get('Price', '').strip()
+                
+                if name and price_str:
+                    try:
+                        price = Decimal(price_str)
+                        kaggle_prices[name.lower()] = price
+                    except:
+                        pass
+        
+        self.stdout.write(f'Loaded prices for {len(kaggle_prices)} games from Kaggle')
+        
+        # Update games in database
+        all_games = Games.objects.all()
+        updated = 0
+        
+        for game in all_games:
+            game_name_lower = game.game_name.lower()
+            
+            if game_name_lower in kaggle_prices:
+                new_price = kaggle_prices[game_name_lower]
+                
+                if game.game_price != new_price:
+                    game.game_price = new_price
+                    game.save()
+                    updated += 1
+        
+        self.stdout.write(self.style.SUCCESS(f'✓ Updated prices for {updated} games'))
