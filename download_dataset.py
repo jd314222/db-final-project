@@ -7,8 +7,8 @@ import os
 import shutil
 
 # Download latest version
-# path = kagglehub.dataset_download("akashunikaggle/steam-game-reviews-of-743-games")
-# path = kagglehub.dataset_download("baraazaid/pc-video-game-requirements")
+path = kagglehub.dataset_download("akashunikaggle/steam-game-reviews-of-743-games")
+path = kagglehub.dataset_download("baraazaid/pc-video-game-requirements")
 path = kagglehub.dataset_download("fronkongames/steam-games-dataset")
 
 print("Path to dataset files:", path)
