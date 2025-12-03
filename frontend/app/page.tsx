@@ -6,7 +6,7 @@ export default function Home() {
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-6xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-purple-600 text-transparent bg-clip-text">
-            Steam Game Browser
+            SteamReviewer
           </h1>
           <p className="text-xl text-gray-300 mb-12">
             Browse 700+ PC games, read 730,000+ reviews, and find your next adventure
