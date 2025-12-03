@@ -83,12 +83,13 @@ class ReviewsViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint for browsing reviews
     
-    Filters: game_id, voted_up (sentiment), ordering by helpfulness
+    Filters: game_id, game name search, voted_up (sentiment), ordering by helpfulness
     """
     queryset = Reviews.objects.select_related('game').order_by('-created_at')
     serializer_class = ReviewsSerializer
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['game']
+    search_fields = ['game__game_name']
     ordering_fields = ['votes_up', 'votes_funny', 'created_at', 'author_playtime_forever']
     
     def get_queryset(self):

@@ -88,6 +88,7 @@ class GamesDetailSerializer(serializers.ModelSerializer):
 
 class ReviewsSerializer(serializers.ModelSerializer):
     game_id = serializers.IntegerField(source='game.game_id', read_only=True)
+    game_name = serializers.CharField(source='game.game_name', read_only=True)
     user_id = serializers.SerializerMethodField()
     hours_played = serializers.FloatField(source='author_playtime_forever', read_only=True)
     date_posted = serializers.DateTimeField(source='created_at', read_only=True)
@@ -95,7 +96,7 @@ class ReviewsSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Reviews
-        fields = ['review_id', 'game_id', 'user_id', 'review_text', 'sentiment', 
+        fields = ['review_id', 'game_id', 'game_name', 'user_id', 'review_text', 'sentiment', 
                   'hours_played', 'date_posted']
     
     def get_user_id(self, obj):
