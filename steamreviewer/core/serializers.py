@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
     Games, Reviews, Genres, Developers, GameSystemRequirements,
-    Users, UserSpecs, UserWishList, UserFavoritedGenres
+    Users, UserSpecs, UserWishList, UserFavoritedGenres, UserLibrary
 )
 
 
@@ -140,7 +140,29 @@ class UsersSerializer(serializers.ModelSerializer):
 
 class UserWishListSerializer(serializers.ModelSerializer):
     game = GamesListSerializer(read_only=True)
+    game_id = serializers.IntegerField(write_only=True, required=False)
+    user_id = serializers.IntegerField(write_only=True, required=False)
     
     class Meta:
         model = UserWishList
+        fields = ['user', 'game', 'user_id', 'game_id']
+    
+    def create(self, validated_data):
+        # Handle both 'game' and 'game_id' fields
+        game_id = validated_data.pop('game_id', None)
+        user_id = validated_data.pop('user_id', None)
+        
+        if game_id:
+            validated_data['game_id'] = game_id
+        if user_id:
+            validated_data['user_id'] = user_id
+            
+        return super().create(validated_data)
+
+
+class UserLibrarySerializer(serializers.ModelSerializer):
+    game = GamesListSerializer(read_only=True)
+    
+    class Meta:
+        model = UserLibrary
         fields = '__all__'

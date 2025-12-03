@@ -4,10 +4,10 @@ from rest_framework.response import Response
 from django.db.models import Count, Avg, Q, F, Case, When, FloatField
 from django_filters.rest_framework import DjangoFilterBackend
 
-from .models import Games, Reviews, Genres, Developers, Users, UserWishList
+from .models import Games, Reviews, Genres, Developers, Users, UserWishList, UserSpecs
 from .serializers import (
     GamesListSerializer, GamesDetailSerializer, ReviewsSerializer,
-    GenresSerializer, DevelopersSerializer, UsersSerializer, UserWishListSerializer
+    GenresSerializer, DevelopersSerializer, UsersSerializer, UserWishListSerializer, UserSpecsSerializer
 )
 
 
@@ -127,14 +127,65 @@ class DevelopersViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class UsersViewSet(viewsets.ModelViewSet):
-    """API endpoint for user profiles"""
+    """API endpoint for user profiles - allows creating new users"""
     queryset = Users.objects.all()
     serializer_class = UsersSerializer
+    http_method_names = ['get', 'post', 'put', 'patch', 'delete']
+
+
+class UserSpecsViewSet(viewsets.ModelViewSet):
+    """API endpoint for user system specs"""
+    queryset = UserSpecs.objects.all()
+    serializer_class = UserSpecsSerializer
+    http_method_names = ['get', 'post', 'put', 'patch', 'delete']
 
 
 class UserWishListViewSet(viewsets.ModelViewSet):
-    """API endpoint for user wishlists"""
+    """API endpoint for user wishlists - add/remove games from wishlist"""
     queryset = UserWishList.objects.select_related('user', 'game')
     serializer_class = UserWishListSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['user']
+    
+    def create(self, request, *args, **kwargs):
+        """Add a game to user's wishlist"""
+        user_id = request.data.get('user') or request.data.get('user_id')
+        game_id = request.data.get('game') or request.data.get('game_id')
+        
+        if not user_id or not game_id:
+            return Response(
+                {'detail': 'Both user and game are required'},
+                status=400
+            )
+        
+        # Check if already in wishlist
+        if UserWishList.objects.filter(user_id=user_id, game_id=game_id).exists():
+            return Response(
+                {'detail': 'Game already in wishlist'},
+                status=400
+            )
+        
+        # Create the wishlist entry
+        wishlist_item = UserWishList.objects.create(
+            user_id=user_id,
+            game_id=game_id
+        )
+        
+        serializer = self.get_serializer(wishlist_item)
+        return Response(serializer.data, status=201)
+    
+    def destroy(self, request, *args, **kwargs):
+        """Remove a game from user's wishlist"""
+        # Support lookup by user_game combination
+        user_id = self.kwargs.get('pk', '').split('_')[0] if '_' in self.kwargs.get('pk', '') else None
+        game_id = self.kwargs.get('pk', '').split('_')[1] if '_' in self.kwargs.get('pk', '') else None
+        
+        if user_id and game_id:
+            try:
+                wishlist_item = UserWishList.objects.get(user_id=user_id, game_id=game_id)
+                wishlist_item.delete()
+                return Response(status=204)
+            except UserWishList.DoesNotExist:
+                return Response({'detail': 'Not found'}, status=404)
+        
+        return super().destroy(request, *args, **kwargs)
