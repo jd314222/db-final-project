@@ -37,11 +37,22 @@ export default function ReviewsPage() {
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-6">User Reviews</h1>
+          <h1 className="text-4xl font-bold mb-6">Review Hub</h1>
           
           {/* Filters */}
           <div className="bg-gray-800 p-6 rounded-lg">
             <div className="grid md:grid-cols-3 gap-4">
+              {/* Game Search */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Search Game</label>
+                <input
+                  type="text"
+                  placeholder="Search by game name..."
+                  className="w-full px-3 py-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                  onChange={(e) => handleFilterChange({ search: e.target.value || undefined })}
+                />
+              </div>
+
               {/* Sentiment Filter */}
               <div>
                 <label className="block text-sm font-medium mb-2">Sentiment</label>
@@ -52,7 +63,6 @@ export default function ReviewsPage() {
                   <option value="">All Reviews</option>
                   <option value="Positive">Positive</option>
                   <option value="Negative">Negative</option>
-                  <option value="Neutral">Neutral</option>
                 </select>
               </div>
 
@@ -63,23 +73,11 @@ export default function ReviewsPage() {
                   className="w-full px-3 py-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
                   onChange={(e) => handleFilterChange({ ordering: e.target.value || undefined })}
                 >
-                  <option value="">Most Recent</option>
-                  <option value="-hours_played">Most Hours Played</option>
-                  <option value="hours_played">Least Hours Played</option>
-                  <option value="-date_posted">Newest First</option>
-                  <option value="date_posted">Oldest First</option>
+                  <option value="-created_at">Newest First</option>
+                  <option value="created_at">Oldest First</option>
+                  <option value="-author_playtime_forever">Most Hours Played</option>
+                  <option value="author_playtime_forever">Least Hours Played</option>
                 </select>
-              </div>
-
-              {/* Game ID Filter (optional) */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Game ID (optional)</label>
-                <input
-                  type="number"
-                  placeholder="Filter by game ID..."
-                  className="w-full px-3 py-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
-                  onChange={(e) => handleFilterChange({ game_id: e.target.value || undefined })}
-                />
               </div>
             </div>
           </div>
@@ -101,9 +99,8 @@ export default function ReviewsPage() {
                         href={`/games/${review.game_id}`}
                         className="font-semibold text-blue-400 hover:text-blue-300"
                       >
-                        Game #{review.game_id}
+                        {review.game_name}
                       </Link>
-                      <span className="text-gray-500">by User {review.user_id}</span>
                       <span className={`px-3 py-1 rounded text-sm ${
                         review.sentiment === 'Positive' 
                           ? 'bg-green-600' 
