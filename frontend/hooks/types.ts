@@ -58,6 +58,7 @@ export interface GameFilters {
   release_year?: number;
   ordering?: string;
   page?: number;
+  has_requirements?: string;
 }
 
 export interface ReviewFilters {

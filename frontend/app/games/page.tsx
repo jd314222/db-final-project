@@ -148,6 +148,18 @@ export default function GamesPage() {
                 <option value="under_30">Under $30</option>
               </select>
             </div>
+
+            {/* System Requirements Filter */}
+            <div>
+              <label className="block text-sm font-medium mb-2">System Requirements</label>
+              <select
+                className="w-full md:w-64 px-3 py-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                onChange={(e) => handleFilterChange({ has_requirements: e.target.value || undefined })}
+              >
+                <option value="">All Games</option>
+                <option value="true">Has System Requirements</option>
+              </select>
+            </div>
           </div>
         </div>
 
