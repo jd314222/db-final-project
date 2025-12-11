@@ -69,7 +69,6 @@ We are building a Steam game review and recommendation application that helps us
 - **GameSystemRequirements**: PC hardware requirements (CPU, GPU, RAM)
 - **Users**: User accounts with budget preferences
 - **UserWishList**: Many-to-many relationship between users and games
-- **Genres**: Game categorization
 - **GameImages**: Steam CDN image URLs
 - **GameUrls**: Links to Steam store pages
 
@@ -79,8 +78,6 @@ We are building a Steam game review and recommendation application that helps us
 - **Frontend**: Next.js/React
 - **Backend**: Django Framework with SQLite database
 - **Database**: SQLite
-- **Data**: 110,000+ games from Kaggle Steam dataset
-- **Analytics**: Complex SQL queries with aggregations and window functions
 
 ---
 
