@@ -66,6 +66,11 @@ class GamesViewSet(viewsets.ReadOnlyModelViewSet):
         if genre_name:
             queryset = queryset.filter(genre__genre_name__iexact=genre_name)
         
+        # Filter by system requirements availability
+        has_requirements = self.request.query_params.get('has_requirements')
+        if has_requirements == 'true':
+            queryset = queryset.filter(gamesystemrequirements__isnull=False)
+        
         return queryset
     
     @action(detail=False, methods=['get'])
@@ -190,3 +195,99 @@ class UserWishListViewSet(viewsets.ModelViewSet):
                 return Response({'detail': 'Not found'}, status=404)
         
         return super().destroy(request, *args, **kwargs)
+
+
+class ReviewAnalyticsViewSet(viewsets.ViewSet):
+    """
+    API endpoint for review analytics and insights
+    Provides statistical analysis of reviews and games
+    """
+    
+    @action(detail=False, methods=['get'])
+    def top_reviewed(self, request):
+        """Games with the most reviews"""
+        games = Games.objects.annotate(
+            total_reviews=Count('reviews'),
+            positive_reviews=Count('reviews', filter=Q(reviews__voted_up=True)),
+            positive_review_ratio=Case(
+                When(total_reviews__gt=0, 
+                     then=F('positive_reviews') * 1.0 / F('total_reviews')),
+                default=0.0,
+                output_field=FloatField()
+            )
+        ).filter(
+            total_reviews__gt=0
+        ).order_by('-total_reviews')[:10]
+        
+        data = [{
+            'game_id': game.game_id,
+            'game_name': game.game_name,
+            'total_reviews': game.total_reviews,
+            'positive_reviews': game.positive_reviews,
+            'rating': round(game.positive_review_ratio * 10, 1),
+            'image_url': game.gameimages_set.first().image_url if game.gameimages_set.exists() else None
+        } for game in games]
+        
+        return Response(data)
+    
+    @action(detail=False, methods=['get'])
+    def best_value(self, request):
+        """Games with best rating per dollar (value score)"""
+        from django.db.models.functions import Ln
+        
+        games = Games.objects.annotate(
+            total_reviews=Count('reviews'),
+            positive_reviews=Count('reviews', filter=Q(reviews__voted_up=True)),
+            positive_review_ratio=Case(
+                When(total_reviews__gt=0, 
+                     then=F('positive_reviews') * 1.0 / F('total_reviews')),
+                default=0.0,
+                output_field=FloatField()
+            )
+        ).filter(
+            total_reviews__gte=10,  # Must have at least 10 reviews
+            game_price__gt=0,  # Exclude free games
+            game_price__lte=100  # Reasonable price cap
+        ).order_by('-positive_review_ratio', '-total_reviews')[:10]
+        
+        data = [{
+            'game_id': game.game_id,
+            'game_name': game.game_name,
+            'price': float(game.game_price),
+            'rating': round(game.positive_review_ratio * 10, 1),
+            'total_reviews': game.total_reviews,
+            'value_score': round((game.positive_review_ratio * 10) / float(game.game_price), 2),
+            'image_url': game.gameimages_set.first().image_url if game.gameimages_set.exists() else None
+        } for game in games]
+        
+        return Response(data)
+    
+    @action(detail=False, methods=['get'])
+    def most_wishlisted(self, request):
+        """Games most frequently added to wishlists"""
+        from .models import UserWishList
+        
+        games = Games.objects.annotate(
+            wishlist_count=Count('userwishlist', distinct=True),
+            total_reviews=Count('reviews', distinct=True),
+            positive_reviews=Count('reviews', filter=Q(reviews__voted_up=True), distinct=True),
+            positive_review_ratio=Case(
+                When(total_reviews__gt=0, 
+                     then=F('positive_reviews') * 1.0 / F('total_reviews')),
+                default=0.0,
+                output_field=FloatField()
+            )
+        ).filter(
+            wishlist_count__gt=0  # Must be in at least one wishlist
+        ).order_by('-wishlist_count')[:10]
+        
+        data = [{
+            'game_id': game.game_id,
+            'game_name': game.game_name,
+            'wishlist_count': game.wishlist_count,
+            'rating': round(game.positive_review_ratio * 10, 1),
+            'price': float(game.game_price) if game.game_price else 0.0,
+            'image_url': game.gameimages_set.first().image_url if game.gameimages_set.exists() else None
+        } for game in games]
+        
+        return Response(data)

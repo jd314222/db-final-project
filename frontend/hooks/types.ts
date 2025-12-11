@@ -9,10 +9,12 @@ export interface Game {
   total_reviews?: number;
   release_year?: number;
   storage_gb?: number;
+  image_url?: string;
 }
 
 export interface GameDetail extends Game {
   positive_reviews?: number;
+  steam_url?: string;
   system_requirements?: {
     cpu: string | null;
     gpu: string | null;
@@ -56,6 +58,7 @@ export interface GameFilters {
   release_year?: number;
   ordering?: string;
   page?: number;
+  has_requirements?: string;
 }
 
 export interface ReviewFilters {

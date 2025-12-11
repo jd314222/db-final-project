@@ -18,6 +18,7 @@ export default function GamesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [addingToWishlist, setAddingToWishlist] = useState<number | null>(null);
   const [wishlistedGames, setWishlistedGames] = useState<Set<number>>(new Set());
+  const [userBudget, setUserBudget] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchGenres = async () => {
@@ -35,11 +36,15 @@ export default function GamesPage() {
     const fetchWishlist = async () => {
       if (isAuthenticated && userId) {
         try {
-          const data = await apiClient.getWishlist(userId);
-          const gameIds = new Set(data.results.map((item: any) => item.game.game_id));
+          const [wishlistData, userData] = await Promise.all([
+            apiClient.getWishlist(userId),
+            apiClient.getUser(userId)
+          ]);
+          const gameIds = new Set(wishlistData.results.map((item: any) => item.game.game_id));
           setWishlistedGames(gameIds);
+          setUserBudget(userData.budget || null);
         } catch (error) {
-          console.error('Failed to fetch wishlist:', error);
+          console.error('Failed to fetch user data:', error);
         }
       }
     };
@@ -63,7 +68,12 @@ export default function GamesPage() {
   }, [filters, page]);
 
   const handleFilterChange = (newFilters: Partial<GameFilters>) => {
-    setFilters({ ...filters, ...newFilters });
+    // Handle "my_budget" special case
+    if (newFilters.budget === 'my_budget' && userBudget) {
+      setFilters({ ...filters, budget: undefined, price_max: userBudget });
+    } else {
+      setFilters({ ...filters, ...newFilters });
+    }
     setPage(1);
   };
 
@@ -142,10 +152,25 @@ export default function GamesPage() {
                 onChange={(e) => handleFilterChange({ budget: e.target.value || undefined })}
               >
                 <option value="">Any Budget</option>
+                {isAuthenticated && userBudget && (
+                  <option value="my_budget">My Budget (${Number(userBudget).toFixed(2)})</option>
+                )}
                 <option value="free">Free</option>
                 <option value="under_10">Under $10</option>
                 <option value="under_20">Under $20</option>
                 <option value="under_30">Under $30</option>
+              </select>
+            </div>
+
+            {/* System Requirements Filter */}
+            <div>
+              <label className="block text-sm font-medium mb-2">System Requirements</label>
+              <select
+                className="w-full md:w-64 px-3 py-2 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                onChange={(e) => handleFilterChange({ has_requirements: e.target.value || undefined })}
+              >
+                <option value="">All Games</option>
+                <option value="true">Has System Requirements</option>
               </select>
             </div>
           </div>
@@ -165,6 +190,19 @@ export default function GamesPage() {
                   className="bg-gray-800 rounded-lg overflow-hidden hover:ring-2 hover:ring-blue-500 transition-all"
                 >
                   <Link href={`/games/${game.game_id}`}>
+                    {/* Game Image */}
+                    <div className="relative w-full h-48 bg-gray-700">
+                      <img 
+                        src={game.image_url || '/steam_logo.jpg'} 
+                        alt={game.game_name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to steam logo if image fails to load
+                          e.currentTarget.src = '/steam_logo.jpg';
+                        }}
+                      />
+                    </div>
+                    
                     <div className="p-6">
                       <h3 className="text-xl font-semibold mb-2 line-clamp-2">{game.game_name}</h3>
                       <div className="flex items-center gap-2 mb-3">

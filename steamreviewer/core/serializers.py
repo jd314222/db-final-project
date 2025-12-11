@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from .models import (
     Games, Reviews, Genres, Developers, GameSystemRequirements,
-    Users, UserSpecs, UserWishList, UserFavoritedGenres, UserLibrary
+    Users, UserSpecs, UserWishList, UserFavoritedGenres, UserLibrary,
+    GameImages, GameUrls
 )
 
 
@@ -30,11 +31,12 @@ class GamesListSerializer(serializers.ModelSerializer):
     discount_percentage = serializers.SerializerMethodField()
     rating = serializers.SerializerMethodField()
     total_reviews = serializers.IntegerField(read_only=True)
+    image_url = serializers.SerializerMethodField()
     
     class Meta:
         model = Games
         fields = ['game_id', 'game_name', 'genre_name', 'price', 'discount_percentage', 
-                  'rating', 'total_reviews', 'release_year', 'storage_gb']
+                  'rating', 'total_reviews', 'release_year', 'storage_gb', 'image_url']
     
     def get_discount_percentage(self, obj):
         # TODO: Add discount logic when discount data is available
@@ -45,6 +47,14 @@ class GamesListSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'positive_review_ratio') and obj.positive_review_ratio is not None:
             return round(obj.positive_review_ratio * 10, 1)
         return 7.5  # Default rating
+    
+    def get_image_url(self, obj):
+        # Get the first image for this game
+        try:
+            image = obj.gameimages_set.first()
+            return image.image_url if image else None
+        except Exception:
+            return None
 
 
 class GamesDetailSerializer(serializers.ModelSerializer):
@@ -56,12 +66,14 @@ class GamesDetailSerializer(serializers.ModelSerializer):
     total_reviews = serializers.IntegerField(read_only=True)
     positive_reviews = serializers.IntegerField(read_only=True)
     system_requirements = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
+    steam_url = serializers.SerializerMethodField()
     
     class Meta:
         model = Games
         fields = ['game_id', 'game_name', 'genre_name', 'price', 'discount_percentage',
                   'rating', 'total_reviews', 'positive_reviews', 'release_year', 
-                  'storage_gb', 'system_requirements']
+                  'storage_gb', 'system_requirements', 'image_url', 'steam_url']
     
     def get_discount_percentage(self, obj):
         return 0
@@ -83,6 +95,20 @@ class GamesDetailSerializer(serializers.ModelSerializer):
                 'directx': None  # Not in current schema
             }
         except GameSystemRequirements.DoesNotExist:
+            return None
+    
+    def get_image_url(self, obj):
+        try:
+            image = obj.gameimages_set.first()
+            return image.image_url if image else None
+        except Exception:
+            return None
+    
+    def get_steam_url(self, obj):
+        try:
+            url_obj = obj.gameurls
+            return url_obj.url if url_obj else None
+        except GameUrls.DoesNotExist:
             return None
 
 

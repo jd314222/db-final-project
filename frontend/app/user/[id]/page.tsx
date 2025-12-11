@@ -17,6 +17,7 @@ interface WishlistGame {
     rating: number;
     total_reviews?: number;
     release_year?: number;
+    image_url?: string;
   };
 }
 
@@ -163,6 +164,18 @@ export default function UserProfilePage() {
                   key={item.game.game_id}
                   className="bg-gray-800 rounded-lg overflow-hidden flex flex-col"
                 >
+                  {/* Game Image */}
+                  <div className="relative w-full h-48 bg-gray-700">
+                    <img 
+                      src={item.game.image_url || '/steam_logo.jpg'} 
+                      alt={item.game.game_name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = '/steam_logo.jpg';
+                      }}
+                    />
+                  </div>
+                  
                   <div className="p-6 flex-1 flex flex-col">
                     <Link 
                       href={`/games/${item.game.game_id}`}
@@ -185,9 +198,6 @@ export default function UserProfilePage() {
                     </div>
 
                     <div className="text-sm text-gray-400 space-y-1 mb-4 flex-1">
-                      {item.game.genre_name && (
-                        <div>🎯 {item.game.genre_name}</div>
-                      )}
                       <div>⭐ Rating: {item.game.rating}/10</div>
                       {item.game.release_year && (
                         <div>📅 {item.game.release_year}</div>

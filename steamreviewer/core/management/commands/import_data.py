@@ -54,21 +54,16 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('\n✅ Data import completed!'))
 
     def import_pc_requirements(self, filepath):
-        """Import games and system requirements from PC videogame requirements CSV"""
+        """Add system requirements to EXISTING games from PC videogame requirements CSV"""
         if not os.path.exists(filepath):
             self.stdout.write(self.style.ERROR(f'File not found: {filepath}'))
             return
         
-        self.stdout.write(f'Importing PC requirements from {filepath}...')
-        
-        # Create a default genre for now
-        default_genre, _ = Genres.objects.get_or_create(
-            genre_name='Unknown',
-            defaults={'genre_name': 'Unknown'}
-        )
+        self.stdout.write(f'\nImporting PC system requirements from {filepath}...')
         
         imported = 0
         skipped = 0
+        not_found = 0
         
         with open(filepath, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
@@ -84,56 +79,58 @@ class Command(BaseCommand):
                     if game_name.endswith(' System Requirements'):
                         game_name = game_name[:-len(' System Requirements')]
                     
-                    # Parse file size (convert to GB if needed)
-                    file_size = None
+                    # Try to find EXISTING game (case-insensitive)
+                    try:
+                        game = Games.objects.get(game_name__iexact=game_name)
+                    except Games.DoesNotExist:
+                        not_found += 1
+                        continue
+                    except Games.MultipleObjectsReturned:
+                        # If multiple games, use first one
+                        game = Games.objects.filter(game_name__iexact=game_name).first()
+                    
+                    # Skip if requirements already exist
+                    if GameSystemRequirements.objects.filter(game=game).exists():
+                        skipped += 1
+                        continue
+                    
+                    # Parse file size and update game if needed
                     file_size_str = row.get('File Size:', '').strip() or row.get('File Size', '').strip()
-                    if file_size_str:
+                    if file_size_str and not game.storage_gb:
                         try:
-                            # Handle formats like "50 GB", "5.5GB", "500 MB"
                             import re
                             match = re.search(r'([\d.]+)\s*(GB|MB)', file_size_str, re.IGNORECASE)
                             if match:
                                 size = float(match.group(1))
                                 unit = match.group(2).upper()
-                                file_size = size if unit == 'GB' else size / 1024
+                                game.storage_gb = size if unit == 'GB' else size / 1024
+                                game.save()
                         except:
                             pass
                     
-                    # Create or get the game (no price from this CSV)
-                    game, created = Games.objects.get_or_create(
-                        game_name=game_name,
-                        defaults={
-                            'genre': default_genre,
-                            'game_price': None,
-                            'release_year': None,
-                            'storage_gb': file_size
-                        }
-                    )
+                    # Create system requirements (try both column name formats)
+                    cpu = row.get('CPU:', '').strip() or row.get('CPU', '').strip() or None
+                    gpu = row.get('Graphics Card:', '').strip() or row.get('Graphics Card', '').strip() or None
+                    ram = row.get('Memory:', '').strip() or row.get('Memory', '').strip() or None
                     
-                    if created:
-                        # Create system requirements (try both column name formats)
-                        cpu = row.get('CPU:', '').strip() or row.get('CPU', '').strip() or None
-                        gpu = row.get('Graphics Card:', '').strip() or row.get('Graphics Card', '').strip() or None
-                        ram = row.get('Memory:', '').strip() or row.get('Memory', '').strip() or None
-                        
-                        GameSystemRequirements.objects.create(
-                            game=game,
-                            cpu_requirements=cpu,
-                            gpu_requirements=gpu,
-                            ram_requirements=ram
-                        )
-                        imported += 1
-                        
-                        if imported % 50 == 0:
-                            self.stdout.write(f'  Imported {imported} games...')
-                    else:
-                        skipped += 1
+                    GameSystemRequirements.objects.create(
+                        game=game,
+                        cpu_requirements=cpu,
+                        gpu_requirements=gpu,
+                        ram_requirements=ram
+                    )
+                    imported += 1
+                    
+                    if imported % 100 == 0:
+                        self.stdout.write(f'  Added requirements for {imported} games...')
                         
                 except Exception as e:
-                    self.stdout.write(self.style.WARNING(f'  Error importing {row.get("Game", "unknown")}: {str(e)}'))
+                    self.stdout.write(self.style.WARNING(f'  Error processing {game_name}: {str(e)}'))
                     continue
         
-        self.stdout.write(self.style.SUCCESS(f'✓ Imported {imported} games, skipped {skipped} duplicates'))
+        self.stdout.write(self.style.SUCCESS(f'✓ Added system requirements for {imported} games'))
+        self.stdout.write(f'  Skipped {skipped} (already had requirements)')
+        self.stdout.write(f'  Not found: {not_found} (games not in database)')
 
     def import_games(self, filepath):
         """Import games and system requirements from steam_dataset.csv"""
