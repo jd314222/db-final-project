@@ -18,6 +18,7 @@ export default function GamesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [addingToWishlist, setAddingToWishlist] = useState<number | null>(null);
   const [wishlistedGames, setWishlistedGames] = useState<Set<number>>(new Set());
+  const [userBudget, setUserBudget] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchGenres = async () => {
@@ -35,11 +36,15 @@ export default function GamesPage() {
     const fetchWishlist = async () => {
       if (isAuthenticated && userId) {
         try {
-          const data = await apiClient.getWishlist(userId);
-          const gameIds = new Set(data.results.map((item: any) => item.game.game_id));
+          const [wishlistData, userData] = await Promise.all([
+            apiClient.getWishlist(userId),
+            apiClient.getUser(userId)
+          ]);
+          const gameIds = new Set(wishlistData.results.map((item: any) => item.game.game_id));
           setWishlistedGames(gameIds);
+          setUserBudget(userData.budget || null);
         } catch (error) {
-          console.error('Failed to fetch wishlist:', error);
+          console.error('Failed to fetch user data:', error);
         }
       }
     };
@@ -63,7 +68,12 @@ export default function GamesPage() {
   }, [filters, page]);
 
   const handleFilterChange = (newFilters: Partial<GameFilters>) => {
-    setFilters({ ...filters, ...newFilters });
+    // Handle "my_budget" special case
+    if (newFilters.budget === 'my_budget' && userBudget) {
+      setFilters({ ...filters, budget: undefined, price_max: userBudget });
+    } else {
+      setFilters({ ...filters, ...newFilters });
+    }
     setPage(1);
   };
 
@@ -142,6 +152,9 @@ export default function GamesPage() {
                 onChange={(e) => handleFilterChange({ budget: e.target.value || undefined })}
               >
                 <option value="">Any Budget</option>
+                {isAuthenticated && userBudget && (
+                  <option value="my_budget">My Budget (${Number(userBudget).toFixed(2)})</option>
+                )}
                 <option value="free">Free</option>
                 <option value="under_10">Under $10</option>
                 <option value="under_20">Under $20</option>
