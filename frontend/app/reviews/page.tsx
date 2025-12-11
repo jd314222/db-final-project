@@ -64,6 +64,8 @@ export default function ReviewsPage() {
           apiClient.getMostWishlistedGames()
         ]);
         
+        console.log('Most wishlisted data:', mostWishlisted);
+        
         setAnalytics({
           top_reviewed_games: topReviewed,
           best_value_games: bestValue,
