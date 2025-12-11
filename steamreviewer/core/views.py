@@ -228,6 +228,8 @@ class ReviewAnalyticsViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def best_value(self, request):
         """Games with best rating per dollar (value score)"""
+        from django.db.models.functions import Ln
+        
         games = Games.objects.annotate(
             total_reviews=Count('reviews'),
             positive_reviews=Count('reviews', filter=Q(reviews__voted_up=True)),
@@ -236,18 +238,12 @@ class ReviewAnalyticsViewSet(viewsets.ViewSet):
                      then=F('positive_reviews') * 1.0 / F('total_reviews')),
                 default=0.0,
                 output_field=FloatField()
-            ),
-            # Value score: rating / (price + 1) * review count weight
-            value_score=Case(
-                When(game_price__gt=0,
-                     then=(F('positive_review_ratio') * 10.0) / (F('game_price') + 1)),
-                default=0.0,
-                output_field=FloatField()
             )
         ).filter(
             total_reviews__gte=10,  # Must have at least 10 reviews
-            game_price__gt=0  # Exclude free games
-        ).order_by('-value_score')[:10]
+            game_price__gt=0,  # Exclude free games
+            game_price__lte=100  # Reasonable price cap
+        ).order_by('-positive_review_ratio', '-total_reviews')[:10]
         
         data = [{
             'game_id': game.game_id,
@@ -255,26 +251,19 @@ class ReviewAnalyticsViewSet(viewsets.ViewSet):
             'price': float(game.game_price),
             'rating': round(game.positive_review_ratio * 10, 1),
             'total_reviews': game.total_reviews,
-            'value_score': float(game.value_score),
+            'value_score': round((game.positive_review_ratio * 10) / float(game.game_price), 2),
             'image_url': game.gameimages_set.first().image_url if game.gameimages_set.exists() else None
         } for game in games]
         
         return Response(data)
     
     @action(detail=False, methods=['get'])
-    def trending(self, request):
-        """Games with recent review activity (last 30 days trend)"""
-        from django.utils import timezone
-        from datetime import timedelta
-        
-        thirty_days_ago = timezone.now() - timedelta(days=30)
+    def most_wishlisted(self, request):
+        """Games most frequently added to wishlists"""
+        from .models import UserWishList
         
         games = Games.objects.annotate(
-            recent_reviews=Count('reviews', filter=Q(reviews__created_at__gte=thirty_days_ago)),
-            recent_positive=Count('reviews', filter=Q(
-                reviews__created_at__gte=thirty_days_ago,
-                reviews__voted_up=True
-            )),
+            wishlist_count=Count('userwishlist'),
             total_reviews=Count('reviews'),
             positive_reviews=Count('reviews', filter=Q(reviews__voted_up=True)),
             positive_review_ratio=Case(
@@ -282,23 +271,17 @@ class ReviewAnalyticsViewSet(viewsets.ViewSet):
                      then=F('positive_reviews') * 1.0 / F('total_reviews')),
                 default=0.0,
                 output_field=FloatField()
-            ),
-            recent_sentiment=Case(
-                When(recent_reviews__gt=0,
-                     then=F('recent_positive') * 1.0 / F('recent_reviews')),
-                default=0.0,
-                output_field=FloatField()
             )
         ).filter(
-            recent_reviews__gte=5  # At least 5 recent reviews to be considered trending
-        ).order_by('-recent_reviews')[:10]
+            wishlist_count__gt=0  # Must be in at least one wishlist
+        ).order_by('-wishlist_count')[:10]
         
         data = [{
             'game_id': game.game_id,
             'game_name': game.game_name,
-            'recent_reviews': game.recent_reviews,
+            'wishlist_count': game.wishlist_count,
             'rating': round(game.positive_review_ratio * 10, 1),
-            'sentiment_trend': 'Positive' if game.recent_sentiment >= 0.7 else 'Mixed' if game.recent_sentiment >= 0.4 else 'Negative',
+            'price': float(game.game_price) if game.game_price else 0.0,
             'image_url': game.gameimages_set.first().image_url if game.gameimages_set.exists() else None
         } for game in games]
         

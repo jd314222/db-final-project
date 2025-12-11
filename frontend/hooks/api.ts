@@ -128,8 +128,8 @@ class APIClient {
     return this.request<any[]>('/analytics/best_value/');
   }
 
-  async getTrendingGames(): Promise<any[]> {
-    return this.request<any[]>('/analytics/trending/');
+  async getMostWishlistedGames(): Promise<any[]> {
+    return this.request<any[]>('/analytics/most_wishlisted/');
   }
 }
 
