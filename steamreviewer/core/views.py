@@ -66,6 +66,11 @@ class GamesViewSet(viewsets.ReadOnlyModelViewSet):
         if genre_name:
             queryset = queryset.filter(genre__genre_name__iexact=genre_name)
         
+        # Filter by system requirements availability
+        has_requirements = self.request.query_params.get('has_requirements')
+        if has_requirements == 'true':
+            queryset = queryset.filter(gamesystemrequirements__isnull=False)
+        
         return queryset
     
     @action(detail=False, methods=['get'])
