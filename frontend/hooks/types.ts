@@ -9,10 +9,12 @@ export interface Game {
   total_reviews?: number;
   release_year?: number;
   storage_gb?: number;
+  image_url?: string;
 }
 
 export interface GameDetail extends Game {
   positive_reviews?: number;
+  steam_url?: string;
   system_requirements?: {
     cpu: string | null;
     gpu: string | null;

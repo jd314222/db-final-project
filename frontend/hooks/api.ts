@@ -118,6 +118,19 @@ class APIClient {
       method: 'DELETE',
     });
   }
+
+  // Analytics
+  async getTopReviewedGames(): Promise<any[]> {
+    return this.request<any[]>('/analytics/top_reviewed/');
+  }
+
+  async getBestValueGames(): Promise<any[]> {
+    return this.request<any[]>('/analytics/best_value/');
+  }
+
+  async getTrendingGames(): Promise<any[]> {
+    return this.request<any[]>('/analytics/trending/');
+  }
 }
 
 export const apiClient = new APIClient(API_URL);
