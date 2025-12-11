@@ -263,9 +263,9 @@ class ReviewAnalyticsViewSet(viewsets.ViewSet):
         from .models import UserWishList
         
         games = Games.objects.annotate(
-            wishlist_count=Count('userwishlist'),
-            total_reviews=Count('reviews'),
-            positive_reviews=Count('reviews', filter=Q(reviews__voted_up=True)),
+            wishlist_count=Count('userwishlist', distinct=True),
+            total_reviews=Count('reviews', distinct=True),
+            positive_reviews=Count('reviews', filter=Q(reviews__voted_up=True), distinct=True),
             positive_review_ratio=Case(
                 When(total_reviews__gt=0, 
                      then=F('positive_reviews') * 1.0 / F('total_reviews')),
