@@ -198,9 +198,6 @@ export default function UserProfilePage() {
                     </div>
 
                     <div className="text-sm text-gray-400 space-y-1 mb-4 flex-1">
-                      {item.game.genre_name && (
-                        <div>🎯 {item.game.genre_name}</div>
-                      )}
                       <div>⭐ Rating: {item.game.rating}/10</div>
                       {item.game.release_year && (
                         <div>📅 {item.game.release_year}</div>
