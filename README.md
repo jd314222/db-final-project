@@ -54,7 +54,7 @@ We are building a Steam game review and recommendation application that helps us
 ---
 
 ## Demo Video
-[Watch Demo Video](LINK_TO_VIDEO_HERE)
+[Watch Demo Video](https://drive.google.com/file/d/1NKfiMjS9EWU3D2elTC1TxcuoR7INKyGs/view?usp=sharing)
 
 ---
 
