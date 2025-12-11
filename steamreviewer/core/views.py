@@ -190,3 +190,116 @@ class UserWishListViewSet(viewsets.ModelViewSet):
                 return Response({'detail': 'Not found'}, status=404)
         
         return super().destroy(request, *args, **kwargs)
+
+
+class ReviewAnalyticsViewSet(viewsets.ViewSet):
+    """
+    API endpoint for review analytics and insights
+    Provides statistical analysis of reviews and games
+    """
+    
+    @action(detail=False, methods=['get'])
+    def top_reviewed(self, request):
+        """Games with the most reviews"""
+        games = Games.objects.annotate(
+            total_reviews=Count('reviews'),
+            positive_reviews=Count('reviews', filter=Q(reviews__voted_up=True)),
+            positive_review_ratio=Case(
+                When(total_reviews__gt=0, 
+                     then=F('positive_reviews') * 1.0 / F('total_reviews')),
+                default=0.0,
+                output_field=FloatField()
+            )
+        ).filter(
+            total_reviews__gt=0
+        ).order_by('-total_reviews')[:10]
+        
+        data = [{
+            'game_id': game.game_id,
+            'game_name': game.game_name,
+            'total_reviews': game.total_reviews,
+            'positive_reviews': game.positive_reviews,
+            'rating': round(game.positive_review_ratio * 10, 1),
+            'image_url': game.gameimages_set.first().image_url if game.gameimages_set.exists() else None
+        } for game in games]
+        
+        return Response(data)
+    
+    @action(detail=False, methods=['get'])
+    def best_value(self, request):
+        """Games with best rating per dollar (value score)"""
+        games = Games.objects.annotate(
+            total_reviews=Count('reviews'),
+            positive_reviews=Count('reviews', filter=Q(reviews__voted_up=True)),
+            positive_review_ratio=Case(
+                When(total_reviews__gt=0, 
+                     then=F('positive_reviews') * 1.0 / F('total_reviews')),
+                default=0.0,
+                output_field=FloatField()
+            ),
+            # Value score: rating / (price + 1) * review count weight
+            value_score=Case(
+                When(game_price__gt=0,
+                     then=(F('positive_review_ratio') * 10.0) / (F('game_price') + 1)),
+                default=0.0,
+                output_field=FloatField()
+            )
+        ).filter(
+            total_reviews__gte=10,  # Must have at least 10 reviews
+            game_price__gt=0  # Exclude free games
+        ).order_by('-value_score')[:10]
+        
+        data = [{
+            'game_id': game.game_id,
+            'game_name': game.game_name,
+            'price': float(game.game_price),
+            'rating': round(game.positive_review_ratio * 10, 1),
+            'total_reviews': game.total_reviews,
+            'value_score': float(game.value_score),
+            'image_url': game.gameimages_set.first().image_url if game.gameimages_set.exists() else None
+        } for game in games]
+        
+        return Response(data)
+    
+    @action(detail=False, methods=['get'])
+    def trending(self, request):
+        """Games with recent review activity (last 30 days trend)"""
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        thirty_days_ago = timezone.now() - timedelta(days=30)
+        
+        games = Games.objects.annotate(
+            recent_reviews=Count('reviews', filter=Q(reviews__created_at__gte=thirty_days_ago)),
+            recent_positive=Count('reviews', filter=Q(
+                reviews__created_at__gte=thirty_days_ago,
+                reviews__voted_up=True
+            )),
+            total_reviews=Count('reviews'),
+            positive_reviews=Count('reviews', filter=Q(reviews__voted_up=True)),
+            positive_review_ratio=Case(
+                When(total_reviews__gt=0, 
+                     then=F('positive_reviews') * 1.0 / F('total_reviews')),
+                default=0.0,
+                output_field=FloatField()
+            ),
+            recent_sentiment=Case(
+                When(recent_reviews__gt=0,
+                     then=F('recent_positive') * 1.0 / F('recent_reviews')),
+                default=0.0,
+                output_field=FloatField()
+            )
+        ).filter(
+            recent_reviews__gte=5  # At least 5 recent reviews to be considered trending
+        ).order_by('-recent_reviews')[:10]
+        
+        data = [{
+            'game_id': game.game_id,
+            'game_name': game.game_name,
+            'recent_reviews': game.recent_reviews,
+            'rating': round(game.positive_review_ratio * 10, 1),
+            'sentiment_trend': 'Positive' if game.recent_sentiment >= 0.7 else 'Mixed' if game.recent_sentiment >= 0.4 else 'Negative',
+            'image_url': game.gameimages_set.first().image_url if game.gameimages_set.exists() else None
+        } for game in games]
+        
+        return Response(data)

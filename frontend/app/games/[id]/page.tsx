@@ -17,6 +17,7 @@ export default function GameDetailPage() {
   const [loading, setLoading] = useState(true);
   const [reviewPage, setReviewPage] = useState(1);
   const [addingToWishlist, setAddingToWishlist] = useState(false);
+  const [isInWishlist, setIsInWishlist] = useState(false);
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -28,6 +29,19 @@ export default function GameDetailPage() {
         ]);
         setGame(gameData);
         setReviews(reviewsData.results);
+        
+        // Check if game is in user's wishlist
+        if (isAuthenticated && userId) {
+          try {
+            const wishlistData = await apiClient.getWishlist(userId);
+            const inWishlist = wishlistData.results.some(
+              (item: any) => item.game.game_id === Number(gameId)
+            );
+            setIsInWishlist(inWishlist);
+          } catch (error) {
+            console.error('Failed to check wishlist:', error);
+          }
+        }
       } catch (error) {
         console.error('Failed to fetch game data:', error);
       } finally {
@@ -35,7 +49,7 @@ export default function GameDetailPage() {
       }
     };
     fetchGameData();
-  }, [gameId, reviewPage]);
+  }, [gameId, reviewPage, isAuthenticated, userId]);
 
   const handleAddToWishlist = async () => {
     if (!isAuthenticated || !userId) {
@@ -46,6 +60,7 @@ export default function GameDetailPage() {
     setAddingToWishlist(true);
     try {
       await apiClient.addToWishlist(userId, Number(gameId));
+      setIsInWishlist(true);
       alert('Added to wishlist! View your wishlist in your profile.');
     } catch (error: any) {
       if (error.message.includes('400')) {
@@ -78,99 +93,138 @@ export default function GameDetailPage() {
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-8">
         {/* Game Header */}
-        <div className="bg-gray-800 rounded-lg p-8 mb-8">
-          <h1 className="text-4xl font-bold mb-4">{game.game_name}</h1>
+        <div className="bg-gray-800 rounded-lg overflow-hidden mb-8">
+          {/* Game Banner Image */}
+          <div className="relative w-full h-96 bg-gray-700">
+            <img 
+              src={game.image_url || '/steam_logo.jpg'} 
+              alt={game.game_name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                // Fallback to steam logo if image fails to load
+                e.currentTarget.src = '/steam_logo.jpg';
+              }}
+            />
+          </div>
           
-          <div className="grid md:grid-cols-2 gap-8">
-            <div>
-              <div className="mb-4">
-                <span className="text-3xl font-bold text-blue-400">
-                  {game.price === 0 ? 'Free to Play' : `$${game.price}`}
-                </span>
-                {game.discount_percentage > 0 && (
-                  <span className="ml-3 text-lg bg-green-600 px-3 py-1 rounded">
-                    -{game.discount_percentage}% OFF
+          <div className="p-8">
+            <h1 className="text-4xl font-bold mb-4">{game.game_name}</h1>
+          
+            <div className="grid md:grid-cols-2 gap-8">
+              <div>
+                <div className="mb-4">
+                  <span className="text-3xl font-bold text-blue-400">
+                    {game.price === 0 ? 'Free to Play' : `$${game.price}`}
                   </span>
-                )}
+                  {game.discount_percentage > 0 && (
+                    <span className="ml-3 text-lg bg-green-600 px-3 py-1 rounded">
+                      -{game.discount_percentage}% OFF
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex gap-3 mb-6">
+                  {isInWishlist ? (
+                    <button
+                      disabled
+                      className="px-6 py-3 bg-purple-600 rounded-lg font-semibold opacity-50 cursor-not-allowed flex items-center gap-2"
+                    >
+                      <span>✓</span>
+                      In Wishlist
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleAddToWishlist}
+                      disabled={addingToWishlist || !isAuthenticated}
+                      className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <span>{addingToWishlist ? '⏳' : '💖'}</span>
+                      {addingToWishlist ? 'Adding...' : 'Add to Wishlist'}
+                    </button>
+                  )}
+                  
+                  {game.steam_url && (
+                    <a
+                      href={game.steam_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                    >
+                      <span>🎮</span>
+                      View on Steam
+                    </a>
+                  )}
+                </div>
+
+                <div className="space-y-2 text-gray-300">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">⭐ Rating:</span>
+                    <span>{game.rating}/10</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">💬 Total Reviews:</span>
+                    <span>{game.total_reviews?.toLocaleString()}</span>
+                  </div>
+                  {game.positive_reviews !== undefined && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">👍 Positive:</span>
+                      <span>{game.positive_reviews.toLocaleString()} ({Math.round((game.positive_reviews / (game.total_reviews || 1)) * 100)}%)</span>
+                    </div>
+                  )}
+                  {game.release_year && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">📅 Release Year:</span>
+                      <span>{game.release_year}</span>
+                    </div>
+                  )}
+                  {game.storage_gb && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">💾 Storage:</span>
+                      <span>{game.storage_gb} GB</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <button
-                onClick={handleAddToWishlist}
-                disabled={addingToWishlist}
-                className="mb-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <span>{addingToWishlist ? '⏳' : '💖'}</span>
-                {addingToWishlist ? 'Adding...' : 'Add to Wishlist'}
-              </button>
-
-              <div className="space-y-2 text-gray-300">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">⭐ Rating:</span>
-                  <span>{game.rating}/10</span>
+              {/* System Requirements */}
+              {game.system_requirements && (
+                <div className="bg-gray-700 p-6 rounded">
+                  <h2 className="text-xl font-semibold mb-4">System Requirements</h2>
+                  <div className="space-y-2 text-sm">
+                    {game.system_requirements.cpu && (
+                      <div>
+                        <span className="font-semibold">CPU:</span> {game.system_requirements.cpu}
+                      </div>
+                    )}
+                    {game.system_requirements.gpu && (
+                      <div>
+                        <span className="font-semibold">GPU:</span> {game.system_requirements.gpu}
+                      </div>
+                    )}
+                    {game.system_requirements.ram && (
+                      <div>
+                        <span className="font-semibold">RAM:</span> {game.system_requirements.ram}
+                      </div>
+                    )}
+                    {game.system_requirements.storage && (
+                      <div>
+                        <span className="font-semibold">Storage:</span> {game.system_requirements.storage}
+                      </div>
+                    )}
+                    {game.system_requirements.os && (
+                      <div>
+                        <span className="font-semibold">OS:</span> {game.system_requirements.os}
+                      </div>
+                    )}
+                    {game.system_requirements.directx && (
+                      <div>
+                        <span className="font-semibold">DirectX:</span> {game.system_requirements.directx}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">💬 Total Reviews:</span>
-                  <span>{game.total_reviews?.toLocaleString()}</span>
-                </div>
-                {game.positive_reviews !== undefined && (
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">👍 Positive:</span>
-                    <span>{game.positive_reviews.toLocaleString()} ({Math.round((game.positive_reviews / (game.total_reviews || 1)) * 100)}%)</span>
-                  </div>
-                )}
-                {game.release_year && (
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">📅 Release Year:</span>
-                    <span>{game.release_year}</span>
-                  </div>
-                )}
-                {game.storage_gb && (
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">💾 Storage:</span>
-                    <span>{game.storage_gb} GB</span>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
-
-            {/* System Requirements */}
-            {game.system_requirements && (
-              <div className="bg-gray-700 p-6 rounded">
-                <h2 className="text-xl font-semibold mb-4">System Requirements</h2>
-                <div className="space-y-2 text-sm">
-                  {game.system_requirements.cpu && (
-                    <div>
-                      <span className="font-semibold">CPU:</span> {game.system_requirements.cpu}
-                    </div>
-                  )}
-                  {game.system_requirements.gpu && (
-                    <div>
-                      <span className="font-semibold">GPU:</span> {game.system_requirements.gpu}
-                    </div>
-                  )}
-                  {game.system_requirements.ram && (
-                    <div>
-                      <span className="font-semibold">RAM:</span> {game.system_requirements.ram}
-                    </div>
-                  )}
-                  {game.system_requirements.storage && (
-                    <div>
-                      <span className="font-semibold">Storage:</span> {game.system_requirements.storage}
-                    </div>
-                  )}
-                  {game.system_requirements.os && (
-                    <div>
-                      <span className="font-semibold">OS:</span> {game.system_requirements.os}
-                    </div>
-                  )}
-                  {game.system_requirements.directx && (
-                    <div>
-                      <span className="font-semibold">DirectX:</span> {game.system_requirements.directx}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         </div>
 

@@ -165,6 +165,19 @@ export default function GamesPage() {
                   className="bg-gray-800 rounded-lg overflow-hidden hover:ring-2 hover:ring-blue-500 transition-all"
                 >
                   <Link href={`/games/${game.game_id}`}>
+                    {/* Game Image */}
+                    <div className="relative w-full h-48 bg-gray-700">
+                      <img 
+                        src={game.image_url || '/steam_logo.jpg'} 
+                        alt={game.game_name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to steam logo if image fails to load
+                          e.currentTarget.src = '/steam_logo.jpg';
+                        }}
+                      />
+                    </div>
+                    
                     <div className="p-6">
                       <h3 className="text-xl font-semibold mb-2 line-clamp-2">{game.game_name}</h3>
                       <div className="flex items-center gap-2 mb-3">
